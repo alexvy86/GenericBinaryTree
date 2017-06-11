@@ -45,8 +45,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Call.cs" />
-    <Compile Include="IndexKeys\IntStringKey.cs" />
-    <Compile Include="IndexKeys\IndexKey.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

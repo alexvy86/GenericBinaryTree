@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using GenericBinaryTree;
-using GenericBinaryTreeTester.IndexKeys;
 using System.Diagnostics;
 using System.Data.SqlClient;
 using System.Configuration;
@@ -17,11 +16,10 @@ namespace GenericBinaryTreeTester
 
 		static void Main(string[] args)
 		{
-			var btree = new BTree<Tuple<int, string>>(); // new BTree<IntStringKey>();
-			Stopwatch sw = new Stopwatch();
+			var btree = new BTree<Tuple<int, string>>();
 			int amountOfCalls = 100000;
-			var lookups = new List<Tuple<int, string>>();  // new List<IntStringKey>();
-			int lookupamount = 10000;
+			var lookups = new List<Tuple<int, string>>();
+			int amountOfLookups = 10000;
 			List<Call> rows = null;
 
 			#region Create/retrieve calls
@@ -29,41 +27,47 @@ namespace GenericBinaryTreeTester
 			{
                 //rows = CallsFromDbServer(amountOfCalls); // Use different methods to retrieve from memory, DB, etc
                 rows = InMemoryList(amountOfCalls);
-			}, String.Format("Creating/retrieving {0} calls took", amountOfCalls));
+			}, $"Creating/retrieving {amountOfCalls} calls");
 			#endregion
 
 			#region Create index
 			ExecuteTimedComputation(() =>
 			{
 				foreach (var row in rows)
-					//btree.Add(new IntStringKey(row.ClientId, row.DNIS));
-					btree.Add(new Tuple<int, string>(row.ClientId, row.DNIS));
-			}, String.Format("Creating index for {0} entries", rows.Count));
+                {
+                    btree.Add(new Tuple<int, string>(row.ClientId, row.DNIS));
+                }
+			}, $"Creating index for {rows.Count} entries");
 			#endregion
 
 			#region Create lookup list
 			ExecuteTimedComputation(() =>
 			{
-				for (int i = 0; i < lookupamount; i++)
-					//lookups.Add(new IntStringKey(_r.Next(100), RandomDnis()));
-					lookups.Add(new Tuple<int, string>(_r.Next(100), RandomDnis()));
-			}, String.Format("Creating {0} lookup entries", lookupamount));
+				for (int i = 0; i < amountOfLookups; i++)
+                {
+                    lookups.Add(new Tuple<int, string>(_r.Next(100), RandomDnis()));
+                }
+			}, $"Creating {amountOfLookups} lookup entries");
 			#endregion
 
 			#region Do linear lookups (COMMENT IF WORKING WITH BIG TABLES)
 			ExecuteTimedComputation(() =>
-			{
-				foreach (var l in lookups)
-					rows.FirstOrDefault(call => call.ClientId == l.Item1 && call.DNIS == l.Item2);
-			}, String.Format("Doing {0} linear lookups", lookupamount));
+            {
+                foreach (var l in lookups)
+                {
+                    rows.FirstOrDefault(call => call.ClientId == l.Item1 && call.DNIS == l.Item2);
+                }
+			}, $"Doing {amountOfLookups} linear lookups");
 			#endregion
 
 			#region Do binary tree lookups
 			ExecuteTimedComputation(() =>
 			{
 				foreach (var l in lookups)
-					btree.Find(l);
-			}, String.Format("Doing {0} lookups with index", lookupamount));
+                {
+                    btree.Find(l);
+                }
+			}, $"Doing {amountOfLookups} lookups with index");
 			#endregion
 
 			Console.ReadLine();
@@ -94,7 +98,7 @@ namespace GenericBinaryTreeTester
 			using (var conn = new SqlConnection(ConfigurationManager.ConnectionStrings["db"].ConnectionString))
 			{
 				conn.Open();
-				using (var cmd = new SqlCommand(String.Format("SELECT TOP {0} CallId, ClientId, DNIS, CallerPhoneNumber, RingTo, Duration, StartDate FROM Calls", amountOfCallsToRetrieve), conn))
+				using (var cmd = new SqlCommand($"SELECT TOP {amountOfCallsToRetrieve} CallId, ClientId, DNIS, CallerPhoneNumber, RingTo, Duration, StartDate FROM Calls", conn))
 				{
 					using (var rdr = cmd.ExecuteReader())
 					{
@@ -117,28 +121,24 @@ namespace GenericBinaryTreeTester
 
 		private static string RandomDnis()
 		{
-			return "800" + RandomDigitString(7);
+			return $"800{RandomDigitString(7)}";
 		}
 
 		private static string RandomDigitString(int length)
 		{
-			
 			StringBuilder sb = new StringBuilder();
 			for (int i = 0; i < length; i++)
 				sb.Append((char)(48 + _r.Next(10)));
 			return sb.ToString();
 		}
 
-		static void ExecuteTimedComputation(TimedComputation method, string message)
+		static void ExecuteTimedComputation(Action method, string message)
 		{
 			sw.Start();
 			method.Invoke();
 			sw.Stop();
-			Console.WriteLine(String.Format("{0} took {1}ms", message, sw.ElapsedMilliseconds));
+			Console.WriteLine($"{message} took {sw.ElapsedMilliseconds}ms");
 			sw.Reset();
 		}
-
-		delegate void TimedComputation();
-	
 	}
 }
